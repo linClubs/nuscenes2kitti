@@ -4,17 +4,37 @@
 + 这里强调一下**常规雷达系**(右手拿出来比划，x前, y左, z上)
 + 重要事情说3遍：**常规雷达系 右手比划一下，右手比划一下，右手比划一下**
 
-# 1 发布box消息
 
-1. 依赖
+
+# 1 依赖
+
++ 基本依赖：ros1环境和一个能运行mmdet3d工程的python
+
 ~~~python
+# 记得切一个能运行BEVFusion，fastbev，bevdet，mmdetetion3d的python虚拟环境运行该工程
+# 报错需要什么库就编译什么库
+
+# 1 激活自己的虚拟环境 本人使用bevdet
+conda activate bevdet
+
+# 2 安装依赖包
 pip install empy catkin_pkg nuscenes-devkit python-opencv pypcd 
 
-# 发布box的依赖
+# 3 安装发布box的依赖
 pip install pyyaml rospkg
 sudo apt install ros-noetic-jsk-recognition ros-noetic-jsk-rviz-plugins
 
-# 报错1
+
+# 4 创建工作空间
+mkdir -p nus2kitti_ws/src && cd nus2kitti_ws/src
+
+# 5 拉取源码
+git clone https://github.com/linClubs/nuscenes2kitti.git
+
+# 6 编译
+cd nus2kitti_ws && catkin_make
+
+# 7 运行时报错
 ModuleNotFoundError: No module named 'cStringIO'
 # 修改如下 python3中StringIO是从io导入
 try:
@@ -22,6 +42,8 @@ try:
 
     from io import StringIO
 ~~~
+
++ 发布box消息
 
 ~~~python
 # 1. 只发布前视图和点云
@@ -36,7 +58,6 @@ rosrun nus_pkg nus2kitti.py
 cd nus_pkg/scripts
 python nus2kitti.py
 ~~~
-
 
 
 # 2 坐标系介绍

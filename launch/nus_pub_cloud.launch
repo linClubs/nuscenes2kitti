@@ -1,0 +1,8 @@
+<launch>
+    <param name="dataroot" type="string" value="/home/lin/ros_code/nus_ws/src/nus_pkg/data/nuscenes"/>
+    
+    <node pkg="nus_pkg" type="nus_pub_cloud.py" name="nus_pub_cloud" output = "screen" />
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find nus_pkg)/rviz/2.rviz" respawn="false" output="screen" />
+
+</launch>

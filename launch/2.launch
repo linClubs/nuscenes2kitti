@@ -1,0 +1,11 @@
+<launch>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="a"  args="0.2 0. 0.3 -0.5 0 -1.57 map cam_link" output = "screen" />
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="b"  args="0.2 0. 0.3 -0.520 0 -1.571  cam_link map2" output = "screen" /> -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="b"  args="0.2 0. 0.3 0 -0.523 1.571  cam_link map2" output = "screen" />
+   
+   
+   <!-- -1.570, 0.001, -0.571]   [1.570, -0.571, -0.000] -->
+
+    <node pkg="rviz" type="rviz" name="rviz" respawn="false" args="-d $(find nus_pkg)/launch/1.rviz" output="screen" />
+
+</launch>

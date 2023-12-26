@@ -1,0 +1,18 @@
+<launch>
+    <!-- nus数据集路径 -->
+    <param name="dataroot" type="string" value="/home/lin/code/mmdetection3d/data/nuscenes"/>
+    
+    <!-- 保存路径，使用相对路径 -->
+    <param name="saveroot" type="string" value="/home/lin/ros_code/nus2bag_ws/src/nus_pkg/data/common"/>
+    
+    <!-- 是否保存 -->
+    <param name="save_flag" type="int" value="1"/>
+    
+    <!-- ros消息发布频率 只发了前视, 点云，box 都是基于正常的lidar系-->
+    <param name="frequency" type="int" value="1"/>
+
+    <node pkg="nus_pkg" type="nus2common.py" name="nus2common" output = "screen" />
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find nus_pkg)/rviz/common.rviz" respawn="false" output="screen" />
+
+</launch>
