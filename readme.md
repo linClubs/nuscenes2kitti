@@ -258,8 +258,7 @@ if(categories10):
   <img src="./rviz/1.png" width="512" height="268" />
 </p>
 
-
-
+图中可以看到雷达的坐标系x前y左z上，图像右边正前方的车的3Dbox的yaw角也是朝前的(x方向)
 
 
 ## 7.2 常规lidar系转kitti的相机系
