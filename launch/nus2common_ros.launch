@@ -11,7 +11,7 @@
     <!-- ros消息发布频率 只发了前视, 点云，box 都是基于正常的lidar系-->
     <param name="frequency" type="int" value="1"/>
 
-    <node pkg="nus_pkg" type="nus2common.py" name="nus2common" output = "screen" />
+    <node pkg="nus_pkg" type="nus2common_ros.py" name="nus2common" output = "screen" />
 
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find nus_pkg)/rviz/common.rviz" respawn="false" output="screen" />
 

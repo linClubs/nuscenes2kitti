@@ -1,3 +1,5 @@
+#!/home/lin/software/miniconda3/envs/mmdet3d/bin/python
+#coding=utf-8
 import os
 import shutil
 import numpy as np
@@ -6,8 +8,18 @@ import cv2
 from nuscenes.nuscenes import NuScenes 
 from pyquaternion import Quaternion
 from nuscenes.utils.data_classes import Box
-# import sys
+
+import rospy
+import sys
+
+import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs.msg import Image, PointCloud2
+from jsk_recognition_msgs.msg import BoundingBoxArray, BoundingBox
+from std_msgs.msg import Header
+
+from cv_bridge import CvBridge
 from pypcd import pypcd
+# from rospkg import RosPack
 
 # q, t->T
 def get_T(lidar_calibrator_data, inverse = False):
@@ -28,20 +40,36 @@ def make_dir(save_path):
         os.mkdir(save_path)
 
 # ----------main从这里开始计算-----------------
+rospy.init_node('nus2common_node', anonymous=True)
+# rospack = RosPack()
+# pkg_path = rospack.get_path("nus_pkg")
 # nus路径
-dataroot = "/home/lin/code/mmdetection3d/data/nuscenes"
+dataroot = rospy.get_param('dataroot', default="/home/lin/code/mmdetection3d/data/nuscenes")
+
 # 保存路径
-saveroot = "/home/lin/ros_code/nus2bag_ws/src/nus_pkg/data/common"
-save_flag = True   # 是否保存数据
+saveroot = rospy.get_param('saveroot', default="/home/lin/ros_code/nus2bag_ws/src/nus_pkg/data/common")
+
+# 是否保存数据
+save_flag = rospy.get_param('save_flag', default=True)  # 是否保存数据
+# ros发布频率
+frequency = rospy.get_param('frequency', default=5)
+
+make_dir(saveroot)
+print(saveroot)
+rate = rospy.Rate(frequency)  # ros发布频率Hz
 categories10 = True  # 只取10类
 # 相机名称
 cameras = ["CAM_FRONT_LEFT", "CAM_FRONT", "CAM_FRONT_RIGHT", "CAM_BACK_LEFT", "CAM_BACK", "CAM_BACK_RIGHT"]
-# -----------------------------------------------
 
-# 创建保存路径
-make_dir(saveroot)
+
+pub_points = rospy.Publisher('/point_cloud', PointCloud2, queue_size=10)
+pub_image = rospy.Publisher("/image_front", Image, queue_size=10)
+pub_3dbox = rospy.Publisher("/3dbox", BoundingBoxArray, queue_size=10)
+
+
 
 nusc = NuScenes(version='v1.0-mini', dataroot=dataroot, verbose=True) # 读取数据集
+
 
 if(categories10):
     nus_categories = ['car', 'truck', 'trailer', 'bus', 'construction',
@@ -86,6 +114,8 @@ min = np.min(np.array(dist_arr).reshape(-1))
 print(max, min)
  
 for ii, sample in enumerate(nusc.sample):
+    if(rospy.is_shutdown()):
+        sys.exit()
     # 1 雷达处理
     # 1.1 根据token取出lidar的信息
     lidar_token = sample['data']["LIDAR_TOP"]
@@ -220,10 +250,27 @@ for ii, sample in enumerate(nusc.sample):
         if(cam == "CAM_FRONT"):
             img_front = img
          
-    cv2.imshow("front-view", img_front)
-    if(cv2.waitKey(30) == ord('q')): 
-        break
-        # sys.exit()
+        # break
+        # cv2.imshow("img", img)
+        # cv2.waitKey()
+
+    # 
+    header = Header()
+    header.stamp = rospy.Time.now()
+    header.frame_id = "map"  # 坐标系
+
+    # 定义点云数据结构
+    pc_data = pc2.create_cloud_xyz32(header, points_new[:, :3])
+
+    # 发布PointCloud2消息
+    pub_points.publish(pc_data)
+    
+    # 发布图像
+    bridge = CvBridge()
+    img_msg_f = bridge.cv2_to_imgmsg(img_front, "bgr8")  # 转换为ROS图像消息
+    pub_image.publish(img_msg_f)
+
+    
     '''
         3 anno 标注信息解析 
         原始的nus标注是global系下
@@ -307,6 +354,33 @@ for ii, sample in enumerate(nusc.sample):
         if(token != sample['anns'][-1]):  # txt标注文件中最后一行不需要\n
             box_info +="\n"
 
+    # 根据info内容发布ros-Box消息
+    bboxes = BoundingBoxArray()
+    lines = box_info.split('\n')   # 划分每一排内容
+    for line in lines:
+        bbox = BoundingBox()
+        line = line.strip().split(' ')
+        bbox.pose.position.x = float(line[1])
+        bbox.pose.position.y = float(line[2])
+        bbox.pose.position.z = float(line[3])
+        bbox.dimensions.x = float(line[4])
+        bbox.dimensions.y = float(line[5])
+        bbox.dimensions.z = float(line[6])
+        yaw_ = Quaternion(axis=[0, 0, 1], angle = float(line[7]))
+        
+        bbox.pose.orientation.x = yaw_.x
+        bbox.pose.orientation.y = yaw_.y
+        bbox.pose.orientation.z = yaw_.z
+        bbox.pose.orientation.w = yaw_.w
+        bbox.label = nus_categories.index(line[0])
+        bbox.header = header
+        bboxes.boxes.append(bbox)
+    bboxes.header = header
+    # print(len(bboxes.boxes))
+    pub_3dbox.publish(bboxes)
+    
+    rate.sleep()  # 发布频率
+
     # 5 可以通过nusc.get_sample_data获取boxes信息
     # 请注意，这些框被转换到当前传感器的坐标系中  这是是激光的token就box转到激光下
     # lidar_path, boxes, _ = nusc.get_sample_data(lidar_token)
@@ -324,6 +398,7 @@ for ii, sample in enumerate(nusc.sample):
     #     print(box_str)
     #     break
     
+
     '''
     6 保存
     #  box数据：box_info 7维度得量 name x y z dx dy dz yaw

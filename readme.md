@@ -1,6 +1,10 @@
-# nus数据集介绍
+# nus数据集转kitti格式
 
-+ nus转正常的kitti格式(标注还是雷达系，原始kitti是标注是在相机系), **直接参考第7小节**
++ nus转正常的kitti格式(标注还是常规雷达系，原始kitti标注是基于相机系), **可以直接参考第7小节**
+
++ 只用kitti形式保存数据,主要是人看更直接
++ 标注的参考坐标系还是使用常规的雷达系，不使用kitti原始的的相机系,因为自己标注的框都是基于lidar系生成,没必要再转到kitti使用的相机系
+
 + 这里强调一下**常规雷达系**(右手拿出来比划，x前, y左, z上)
 + 重要事情说3遍：**常规雷达系 右手比划一下，右手比划一下，右手比划一下**
 
@@ -8,7 +12,8 @@
 
 # 1 依赖
 
-+ 基本依赖：ros1环境和一个能运行mmdet3d工程的python
++ 基本依赖：ros1环境和一个能运行mmdet3d工程的python环境
++ 没有ros环境,可以只运行`nus2common.py`代码, 不进行点云可视化, 快速实现直接参考本章第7小节内容
 
 ~~~python
 # 记得切一个能运行BEVFusion，fastbev，bevdet，mmdetetion3d的python虚拟环境运行该工程
@@ -17,13 +22,12 @@
 # 1 激活自己的虚拟环境 本人使用bevdet
 conda activate bevdet
 
-# 2 安装依赖包
-pip install empy catkin_pkg nuscenes-devkit python-opencv pypcd 
+# 2 安装依赖包 
+pip install pyyaml nuscenes-devkit python-opencv pypcd 
 
-# 3 安装发布box的依赖
-pip install pyyaml rospkg
+# 3 安装ros发布box的依赖  需要ros可视化才需要安装
+pip install pyyaml rospkg empy catkin_pkg
 sudo apt install ros-noetic-jsk-recognition ros-noetic-jsk-rviz-plugins
-
 
 # 4 创建工作空间
 mkdir -p nus2kitti_ws/src && cd nus2kitti_ws/src
@@ -229,14 +233,19 @@ nus_categories = ['barrier', 'bicycle', 'bicycle_rack', 'bus', 'car',
 + 传感器标定参数注意nus-lidar系已变成常规的lidar系, 主要是外参$T_{\_cam\_lidar}$
 
 
-~~~python
-# 1 启动发布nus到lidar的变换 ros发布正常lidar系的点云 前视图 box 
-# 主要配置nus2common.py中dataroot与saveroot路径, 建议使用下面的roslaunch
-rosrun nus_pkg nus2common.py
++ 没有ros环境的使用`nus2common.py`代码即可
 
-# 2 使用roslaunch启动
-# 主要配置nus2common.launch中dataroot与saveroot路径
-roslaunch nus_pkg nus2common.launch
+~~~python
+# 1 启动nus2common.py 不需要ros环境
+# 只opencv可视化相机前视图并将点云投影到前视图上显示
+# 主要配置nus2common.py中dataroot与saveroot路径
+cd scripts
+python nus2common.py
+
+# 2 使用roslaunch启动 需要ros环境
+# 使用ros-rviz可视化 发布常规lidar系下的点,相机前视图 以及点云的3Dbox, 
+# 主要配置nus2common_ros.launch中dataroot与saveroot路径, 修改nus2common_ros.py第一行的python环境 
+roslaunch nus_pkg nus2common_ros.launch
 
 '''
 bicycle_rack自行车架子 归自行车, 
@@ -252,6 +261,13 @@ if(categories10):
 '''
 ~~~
 
++ `opencv`显示点云投影前视图如下：
+<p align="center">
+  <img src="./rviz/2.png" width="533" height="325" />
+</p>
+
+
+
 + `rviz`显示如下：
 
 <p align="center">
@@ -259,6 +275,32 @@ if(categories10):
 </p>
 
 图中可以看到雷达的坐标系x前y左z上，图像右边正前方的车的3Dbox的yaw角也是朝前的(x方向)
+
++ 生成的数据集目录如下：
+~~~python
+├── data
+│   ├── custom
+│   │   ├── calib
+│   │   │   ├── 000000.txt
+│   │   │   ├── 000001.txt
+│   │   │   ├── ...
+│   │   ├── images
+│   │   │   ├── CAM_FRONT_LEFT
+│   │   │   │   ├── 000000.png
+│   │   │   │   ├── 000001.png
+│   │   │   │   ├── ...
+│   │   │   ├── CAM_FRONT
+│   │   │   ├── CAM_FRONT_BACK
+│   │   │   ├── ...
+│   │   ├── labels
+│   │   │   ├── 000000.txt
+│   │   │   ├── 000001.txt
+│   │   │   ├── ...
+│   │   ├── points
+│   │   │   ├── 000000.bin
+│   │   │   ├── 000001.bin
+│   │   │   ├── ...
+~~~
 
 
 ## 7.2 常规lidar系转kitti的相机系
