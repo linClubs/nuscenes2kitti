@@ -124,7 +124,7 @@ for ii, sample in enumerate(nusc.sample):
     T_global_lidar = T_global_ego @ T_ego_lidar
 
 
-    # 将数据转到正常的lidar系 x向前  这里是幅度值
+    # 将数据转到正常的lidar系 x向前  这里是弧度制 1.57=90°
     # 原始的坐标是x向右，现在得把坐标系转90°。对应的点变换就是-90°
     q = Quaternion(axis=[0, 0, 1], angle = -1.57)  # 例子：把坐标系绕 z 轴旋转 -90 度
     T_new = np.eye(4)
